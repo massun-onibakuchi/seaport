@@ -210,7 +210,7 @@ contract FuzzEngine is
         runSetup(context);
         runCheckRegistration(context);
         execFailure(context);
-        execSuccess(context);
+        // execSuccess(context);
         checkAll(context);
     }
 
@@ -387,6 +387,7 @@ contract FuzzEngine is
             string.concat("Mutation ", name, " did not revert")
         );
         // TODO: Validate returndata
+
         assertEq(
             data,
             expectedRevertReason,

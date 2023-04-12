@@ -13,6 +13,7 @@ import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
+import { Vm } from "forge-std/Vm.sol";
 
 contract MutationFilters {
     using AdvancedOrderLib for AdvancedOrder;
@@ -50,6 +51,30 @@ contract MutationFilters {
 
         return false;
     }
+
+    function ineligibleForOverfill(
+        AdvancedOrder memory,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        // TODO: think about actual criteria.
+        return false;
+    }
+
+    function ineligibleForNoContractTokenAddress(
+        AdvancedOrder memory,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor, MutationFilters {
@@ -67,9 +92,36 @@ contract FuzzMutations is Test, FuzzExecutor, MutationFilters {
 
         exec(context);
     }
+
+    function mutation_badFractionOverfill(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(ineligibleForOverfill);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        // TODO: fuzz on size incorrect fractions
+        order.numerator = 3;
+        order.denominator = 0;
+
+        exec(context);
+    }
+
+    function mutation_noContractInvalidAddress(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(ineligibleForNoContractTokenAddress);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        order.parameters.consideration[0].token = makeAddr("EOA");
+    }
 }
 
 library OrderEligibilityLib {
+    Vm private constant vm =
+        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
     using LibPRNG for LibPRNG.PRNG;
 
     function setIneligibleOrders(
@@ -89,7 +141,7 @@ library OrderEligibilityLib {
     function setIneligibleOrder(
         FuzzTestContext memory context,
         uint256 ineligibleOrderIndex
-    ) internal view {
+    ) internal pure {
         // Set the respective boolean for the ineligible order.
         context.ineligibleOrders[ineligibleOrderIndex] = true;
     }

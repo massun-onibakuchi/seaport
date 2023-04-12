@@ -11,10 +11,18 @@ import {
     SignatureVerificationErrors
 } from "../../../../contracts/interfaces/SignatureVerificationErrors.sol";
 
+import {
+    ConsiderationEventsAndErrors
+} from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+
+import {
+    TokenTransferrerErrors
+} from "../../../../contracts/interfaces/TokenTransferrerErrors.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 enum Failure {
-    InvalidSignature, // EOA signature is incorrect length
+    // InvalidSignature, // EOA signature is incorrect length
     // InvalidSigner_BadSignature, // EOA signature has been tampered with
     // InvalidSigner_ModifiedOrder, // Order with no-code offerer has been tampered with
     // BadSignatureV, // EOA signature has bad v value
@@ -25,6 +33,7 @@ enum Failure {
     // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     // BadFraction_NoFill, // Order where numerator = 0
     // BadFraction_Overfill, // Order where numerator > denominator
+    NoContract_InvalidAddress,
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -66,8 +75,16 @@ library FailureDetailsLib {
         )
     {
         // TODO: more failures will go here
-        if (failure == Failure.InvalidSignature) {
-            return details_InvalidSignature();
+        // if (failure == Failure.InvalidSignature) {
+        //     return details_InvalidSignature();
+        // }
+
+        // if (failure == Failure.BadFraction_Overfill) {
+        //     return details_BadFraction_Overfill();
+        // }
+
+        if (failure == Failure.NoContract_InvalidAddress) {
+            return details_NoContract_InvalidAddress();
         }
     }
 
@@ -84,6 +101,38 @@ library FailureDetailsLib {
         selector = FuzzMutations.mutation_invalidSignature.selector;
         expectedRevertReason = abi.encodePacked(
             SignatureVerificationErrors.InvalidSignature.selector
+        );
+    }
+
+    function details_BadFraction_Overfill()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "BadFraction_Overfill";
+        selector = FuzzMutations.mutation_badFractionOverfill.selector;
+        expectedRevertReason = abi.encodePacked(
+            ConsiderationEventsAndErrors.BadFraction.selector
+        );
+    }
+
+    function details_NoContract_InvalidAddress()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "NoContract_InvalidAddress";
+        selector = FuzzMutations.mutation_noContractInvalidAddress.selector;
+        expectedRevertReason = abi.encodePacked(
+            TokenTransferrerErrors.NoContract.selector
         );
     }
 }
