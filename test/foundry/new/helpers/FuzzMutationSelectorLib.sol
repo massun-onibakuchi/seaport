@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzMutations, MutationFilters } from "./FuzzMutations.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
@@ -30,6 +30,8 @@ import {
 } from "../../../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 import { Vm } from "forge-std/Vm.sol";
+
+import "forge-std/console.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {
@@ -136,7 +138,8 @@ library FuzzMutationSelectorLib {
         returns (
             string memory name,
             bytes4 mutationSelector,
-            bytes memory expectedRevertReason
+            bytes memory expectedRevertReason,
+            MutationState memory mutationState
         )
     {
         // Mark each failure conditions as ineligible if no orders support them.
@@ -148,12 +151,17 @@ library FuzzMutationSelectorLib {
         // Evaluate each filter and assign respective ineligible failures.
         context.setAllIneligibleFailures(failuresAndFilters);
 
-        // Choose one of the remaining eligible failures.
-        return
-            context.failureDetails(
+        (
+            name,
+            mutationSelector,
+            expectedRevertReason,
+            mutationState
+        ) = context.failureDetails(
                 context.selectEligibleFailure(),
                 failuresAndFilters
             );
+
+        console.log("orderIndex", mutationState.selectedOrderIndex);
     }
 }
 
@@ -347,7 +355,8 @@ library FailureDetailsLib {
         returns (
             string memory name,
             bytes4 mutationSelector,
-            bytes memory revertReason
+            bytes memory revertReason,
+            MutationState memory
         )
     {
         FailureDetails memory details = (
@@ -359,13 +368,16 @@ library FailureDetailsLib {
             failuresAndFilters.extractFirstFilterForFailure(failure)
         );
 
+        console.log("inner context:", context.mutationState.selectedOrderIndex);
+
         return (
             details.name,
             details.mutationSelector,
             context.deriveRevertReason(
                 details.errorSelector,
                 details.revertReasonDeriver
-            )
+            ),
+            context.mutationState
         );
     }
 }

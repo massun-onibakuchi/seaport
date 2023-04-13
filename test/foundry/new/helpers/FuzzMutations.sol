@@ -27,6 +27,8 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 
+import "forge-std/console.sol";
+
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
@@ -243,7 +245,13 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidSignature(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation invalid",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
@@ -252,13 +260,34 @@ contract FuzzMutations is Test, FuzzExecutor {
             .orders[context.mutationState.selectedOrderIndex]
             .signature = "";
 
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].signature"
+        );
+
+        console.logBytes(
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .signature
+        );
+
+        console.log("context.mutationState.selectedOrder.signature");
+
+        console.logBytes(context.mutationState.selectedOrder.signature);
+
         exec(context);
     }
 
     function mutation_invalidSigner_BadSignature(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation invalid signer bad signature",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
         context
@@ -266,13 +295,34 @@ contract FuzzMutations is Test, FuzzExecutor {
             .orders[context.mutationState.selectedOrderIndex]
             .signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
 
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].signature"
+        );
+
+        console.logBytes(
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .signature
+        );
+
+        console.log("context.mutationState.selectedOrder.signature");
+
+        console.logBytes(context.mutationState.selectedOrder.signature);
+
         exec(context);
     }
 
     function mutation_invalidSigner_ModifiedOrder(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.salt ^= 0x01;
         context
@@ -284,20 +334,47 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badSignatureV(FuzzTestContext memory context) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation bad sig v",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.signature[64] = 0xff;
         context
             .executionState
             .orders[context.mutationState.selectedOrderIndex]
             .signature[64] = 0xff;
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].signature"
+        );
+
+        console.logBytes(
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .signature
+        );
+
+        console.log("context.mutationState.selectedOrder.signature");
+
+        console.logBytes(context.mutationState.selectedOrder.signature);
         exec(context);
     }
 
     function mutation_invalidTime_NotStarted(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation no started",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.startTime = block.timestamp + 1;
         order.parameters.endTime = block.timestamp + 2;
@@ -312,13 +389,47 @@ contract FuzzMutations is Test, FuzzExecutor {
             .parameters
             .endTime = block.timestamp + 2;
 
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex]parameters.startTime",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .parameters
+                .startTime
+        );
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex]parameters.endTime",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .parameters
+                .endTime
+        );
+
+        console.log(
+            "context.mutationState.selectedOrderparameters.startTime",
+            context.mutationState.selectedOrder.parameters.startTime
+        );
+
+        console.log(
+            "context.mutationState.selectedOrderparameters.endTime",
+            context.mutationState.selectedOrder.parameters.endTime
+        );
+
         exec(context);
     }
 
     function mutation_invalidTime_Expired(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation expired",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.startTime = block.timestamp - 1;
         order.parameters.endTime = block.timestamp;
@@ -333,13 +444,45 @@ contract FuzzMutations is Test, FuzzExecutor {
             .parameters
             .startTime = block.timestamp;
 
+                console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex]parameters.startTime",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex].
+                parameters.startTime
+        );
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex]parameters.endTime",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex].
+                parameters.endTime
+        );
+
+        console.log(
+            "context.mutationState.selectedOrderparameters.startTime",
+            context.mutationState.selectedOrder.parameters.startTime
+        );
+
+        console.log(
+            "context.mutationState.selectedOrderparameters.endTime",
+            context.mutationState.selectedOrder.parameters.endTime
+        );
+
         exec(context);
     }
 
     function mutation_badFraction_NoFill(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation no fill",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.numerator = 0;
 
@@ -348,19 +491,63 @@ contract FuzzMutations is Test, FuzzExecutor {
             .orders[context.mutationState.selectedOrderIndex]
             .numerator = 0;
 
+                console.log(
+            "context.mutationState.selectedOrder.numerator",
+            context.mutationState.selectedOrder.numerator
+        );
+        console.log(
+            "context.mutationState.selectedOrder.denominator",
+            context.mutationState.selectedOrder.denominator
+        );
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].numerator",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .numerator
+        );
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].denominator",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .denominator
+        );
+
         exec(context);
     }
 
     function mutation_badFraction_Overfill(
         FuzzTestContext memory context
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        console.log(
+            "inside mutation overfill",
+            context.mutationState.selectedOrderIndex
+        );
+
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.numerator = 2;
         order.denominator = 1;
 
         console.log("order.numerator", order.numerator);
         console.log("order.denominator", order.denominator);
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].numerator",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .numerator
+        );
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].denominator",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .denominator
+        );
 
         context
             .executionState
@@ -377,6 +564,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_orderIsCancelled(
         FuzzTestContext memory context
     ) external {
+        console.log(
+            "inside mutation",
+            context.mutationState.selectedOrderIndex
+        );
+
         uint256 orderIndex = context.mutationState.selectedOrderIndex;
 
         bytes32 orderHash = context.executionState.orderHashes[orderIndex];

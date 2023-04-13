@@ -31,7 +31,7 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
-import "forge-std/Console.sol";
+import "forge-std/console.sol";
 
 abstract contract FuzzExecutor is Test {
     using AdvancedOrderLib for AdvancedOrder;
@@ -57,14 +57,20 @@ abstract contract FuzzExecutor is Test {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context, bool logCalls) public {
-        // If the caller is not the zero address, prank the address.
+        console.log("before exec", context.mutationState.selectedOrderIndex);
 
         // Get the action to execute.  The action is derived from the fuzz seed,
         // so it will be the same for each run of the test throughout the entire
         // lifecycle of the test.
         bytes4 _action = context.action();
 
-        console.log("context.mutationState.selectedOrderIndex", context.mutationState.selectedOrderIndex);
+        console.log('INSIDE FUZZ EXECUTOR');
+        console.log('////////////////////////////////////////////////////////');
+
+        console.log(
+            "context.mutationState.selectedOrderIndex",
+            context.mutationState.selectedOrderIndex
+        );
 
         console.log(
             "context.mutationState.selectedOrder.numerator",
@@ -89,6 +95,49 @@ abstract contract FuzzExecutor is Test {
                 .orders[context.mutationState.selectedOrderIndex]
                 .denominator
         );
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].signature"
+        );
+
+        console.logBytes(
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .signature
+        );
+
+        console.log("context.mutationState.selectedOrder.signature");
+
+        console.logBytes(context.mutationState.selectedOrder.signature);
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex]parameters.startTime",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex].
+                parameters.startTime
+        );
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex]parameters.endTime",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex].
+                parameters.endTime
+        );
+
+        console.log(
+            "context.mutationState.selectedOrderparameters.startTime",
+            context.mutationState.selectedOrder.parameters.startTime
+        );
+
+        console.log(
+            "context.mutationState.selectedOrderparameters.endTime",
+            context.mutationState.selectedOrder.parameters.endTime
+        );
+
+        console.logBytes(abi.encodePacked(_action));
 
         // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
