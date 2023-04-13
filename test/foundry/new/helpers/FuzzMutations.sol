@@ -12,7 +12,7 @@ import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
@@ -159,6 +159,44 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForNoContract(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // This is kind of lazy. It'd be better to resign a modified order,
+        // probably, than to just skip all cases except where it's possible to
+        // get away without one.
+
+        // Validation obviates the need for a signature.
+        (bool isValidated, , , ) = context.seaport.getOrderStatus(
+            context.orderHashes[orderIndex]
+        );
+
+        if (!isValidated) {
+            return true;
+        }
+
+        if (order.signature.length != 64 && order.signature.length != 65) {
+            return true;
+        }
+
+        if (!context.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (
+            context.orders.length == 0 ||
+            context.orders[0].parameters.consideration.length == 0 ||
+            context.orders[0].parameters.consideration[0].itemType ==
+            ItemType.NATIVE
+        ) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -263,6 +301,18 @@ contract FuzzMutations is Test, FuzzExecutor {
         order.denominator = 1;
 
         console.log(context.actionName());
+
+        exec(context);
+    }
+
+    function mutation_noContract(FuzzTestContext memory context) external {
+        context.setIneligibleOrders(MutationFilters.ineligibleForNoContract);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+            order.parameters.consideration[i].token = address(0x123456789);
+        }
 
         exec(context);
     }

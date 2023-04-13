@@ -24,6 +24,10 @@ import {
     ConsiderationEventsAndErrors
 } from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
+import {
+    TokenTransferrerErrors
+} from "../../../../contracts/interfaces/TokenTransferrerErrors.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
@@ -41,6 +45,7 @@ enum Failure {
     // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
+    NoContract, // Order with token that has a contract with no code
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +105,10 @@ library FuzzMutationSelectorLib {
             .BadFraction_NoFill
             .and(Failure.BadFraction_Overfill)
             .with(MutationFilters.ineligibleForBadFraction);
+
+        failuresAndFilters[i++] = Failure.NoContract.with(
+            MutationFilters.ineligibleForNoContract
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -215,6 +224,15 @@ library FailureDetailsLib {
                 "BadFraction_Overfill",
                 FuzzMutations.mutation_badFraction_Overfill.selector
             );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .NoContract
+            .selector
+            .with(
+                "NoContract",
+                FuzzMutations.mutation_noContract.selector,
+                details_NoContract
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -231,7 +249,7 @@ library FailureDetailsLib {
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
         bytes4 errorSelector
-    ) internal view returns (bytes memory expectedRevertReason) {
+    ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
     }
 
@@ -256,6 +274,17 @@ library FailureDetailsLib {
             block.timestamp
         );
     }
+
+    function details_NoContract(
+        FuzzTestContext memory context,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            address(0x123456789) // makeAddr("EOA") // context.orders[0].parameters.consideration[0].token
+        );
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(

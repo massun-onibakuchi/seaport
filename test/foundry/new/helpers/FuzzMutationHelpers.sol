@@ -372,7 +372,7 @@ library FailureDetailsHelperLib {
     function defaultReason(
         FuzzTestContext memory /* context */,
         bytes4 errorSelector
-    ) internal view returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         return abi.encodePacked(errorSelector);
     }
 }
