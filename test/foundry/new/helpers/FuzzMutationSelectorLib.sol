@@ -255,6 +255,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "NoContract",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_noContract.selector,
                 details_NoContract
             );
@@ -329,9 +330,8 @@ library FailureDetailsLib {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
             // TODO: fix this
-            context.executionState.tokens[
-                context.mutationState.selectedTokenIndex
-            ]
+            context.executionState.orders[context.mutationState.selectedOrderIndex]
+                .parameters.consideration[0].token
         );
     }
 
