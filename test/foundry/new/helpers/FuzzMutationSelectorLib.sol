@@ -117,9 +117,9 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForNoContract
         );
 
-        //failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
-        //    MutationFilters.ineligibleForOrderIsCancelled
-        //);
+        failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
+           MutationFilters.ineligibleForOrderIsCancelled
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
