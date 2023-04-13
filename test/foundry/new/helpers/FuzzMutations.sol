@@ -171,7 +171,7 @@ library MutationFilters {
 
         // Validation obviates the need for a signature.
         (bool isValidated, , , ) = context.seaport.getOrderStatus(
-            context.orderHashes[orderIndex]
+            context.executionState.orderHashes[orderIndex]
         );
 
         if (!isValidated) {
@@ -182,14 +182,14 @@ library MutationFilters {
             return true;
         }
 
-        if (!context.expectedAvailableOrders[orderIndex]) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
             return true;
         }
 
         if (
-            context.orders.length == 0 ||
-            context.orders[0].parameters.consideration.length == 0 ||
-            context.orders[0].parameters.consideration[0].itemType ==
+            context.executionState.orders.length == 0 ||
+            context.executionState.orders[0].parameters.consideration.length == 0 ||
+            context.executionState.orders[0].parameters.consideration[0].itemType ==
             ItemType.NATIVE
         ) {
             return true;
