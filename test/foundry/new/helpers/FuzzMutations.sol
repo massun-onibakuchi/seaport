@@ -308,7 +308,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_noContract(FuzzTestContext memory context) external {
         context.setIneligibleOrders(MutationFilters.ineligibleForNoContract);
 
-        AdvancedOrder memory order = context.selectEligibleOrder();
+        (AdvancedOrder memory order, )  = context.selectEligibleOrder();
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             order.parameters.consideration[i].token = address(0x123456789);
