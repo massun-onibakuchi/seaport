@@ -74,6 +74,8 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
+import { console } from "forge-std/console.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.

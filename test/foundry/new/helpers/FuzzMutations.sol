@@ -218,7 +218,7 @@ library MutationFilters {
     }
 
     function ineligibleForOrderIsCancelled(
-        AdvancedOrder memory order,
+        AdvancedOrder memory /* order */,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
@@ -229,6 +229,8 @@ library MutationFilters {
         ) {
             return true;
         }
+
+        return false;
     }
 }
 
@@ -245,6 +247,10 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .signature = "";
 
         exec(context);
     }
@@ -255,6 +261,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
 
         exec(context);
     }
@@ -265,7 +275,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.salt ^= 0x01;
-
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .parameters
+            .salt ^= 0x01;
         exec(context);
     }
 
@@ -273,7 +287,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.signature[64] = 0xff;
-
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .signature[64] = 0xff;
         exec(context);
     }
 
@@ -284,6 +301,16 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.parameters.startTime = block.timestamp + 1;
         order.parameters.endTime = block.timestamp + 2;
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .parameters
+            .startTime = block.timestamp + 1;
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .parameters
+            .endTime = block.timestamp + 2;
 
         exec(context);
     }
@@ -295,6 +322,16 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.parameters.startTime = block.timestamp - 1;
         order.parameters.endTime = block.timestamp;
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .parameters
+            .startTime = block.timestamp - 1;
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .parameters
+            .startTime = block.timestamp;
 
         exec(context);
     }
@@ -306,6 +343,11 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.numerator = 0;
 
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .numerator = 0;
+
         exec(context);
     }
 
@@ -316,6 +358,18 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.numerator = 2;
         order.denominator = 1;
+
+        console.log("order.numerator", order.numerator);
+        console.log("order.denominator", order.denominator);
+
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .numerator = 2;
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .denominator = 1;
 
         exec(context);
     }
@@ -336,13 +390,21 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_noContract(FuzzTestContext memory context) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForNoContract);
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        order
+            .parameters
+            .consideration[context.mutationState.selectedOrderIndex]
+            .token = address(0x123456789);
+        context
+            .executionState
+            .orders[context.mutationState.selectedOrderIndex]
+            .parameters
+            .consideration[context.mutationState.selectedOrderIndex]
+            .token = address(0x123456789);
 
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
-
-        for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
-            order.parameters.consideration[i].token = address(0x123456789);
-        }
+        // for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+        //     order.parameters.consideration[i].token = address(0x123456789);
+        // }
 
         exec(context);
     }

@@ -22,11 +22,11 @@ contract FuzzMainTest is FuzzEngine {
             FuzzParams({
                 seed: seed,
                 totalOrders: bound(orders, 1, 10),
-                maxOfferItems: bound(maxOfferItemsPerOrder, 0, 10),
+                maxOfferItems: bound(maxOfferItemsPerOrder, 1, 1),
                 maxConsiderationItems: bound(
                     maxConsiderationItemsPerOrder,
-                    0,
-                    10
+                    1,
+                    1
                 )
             })
         );

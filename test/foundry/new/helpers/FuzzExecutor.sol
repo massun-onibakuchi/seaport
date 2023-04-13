@@ -31,6 +31,8 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
+import "forge-std/Console.sol";
+
 abstract contract FuzzExecutor is Test {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -61,6 +63,32 @@ abstract contract FuzzExecutor is Test {
         // so it will be the same for each run of the test throughout the entire
         // lifecycle of the test.
         bytes4 _action = context.action();
+
+        console.log("context.mutationState.selectedOrderIndex", context.mutationState.selectedOrderIndex);
+
+        console.log(
+            "context.mutationState.selectedOrder.numerator",
+            context.mutationState.selectedOrder.numerator
+        );
+        console.log(
+            "context.mutationState.selectedOrder.denominator",
+            context.mutationState.selectedOrder.denominator
+        );
+
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].numerator",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .numerator
+        );
+        console.log(
+            "context.executionState.orders[context.mutationState.selectedOrderIndex].denominator",
+            context
+                .executionState
+                .orders[context.mutationState.selectedOrderIndex]
+                .denominator
+        );
 
         // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
@@ -126,9 +154,9 @@ abstract contract FuzzExecutor is Test {
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc{ value: context.executionState.value }(
-                basicOrderParameters
-            );
+                .fulfillBasicOrder_efficient_6GL6yc{
+                value: context.executionState.value
+            }(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders", logCalls);
             if (context.executionState.caller != address(0))
@@ -136,7 +164,9 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders{ value: context.executionState.value }(
+            ) = context.seaport.fulfillAvailableOrders{
+                    value: context.executionState.value
+                }(
                     context.executionState.orders.toOrders(),
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
@@ -155,7 +185,9 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders{ value: context.executionState.value }(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{
+                    value: context.executionState.value
+                }(
                     context.executionState.orders,
                     context.executionState.criteriaResolvers,
                     context.executionState.offerFulfillments,
