@@ -10,13 +10,22 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrder,
+    OrderParameters,
+    OrderComponents
+} from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
-import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
-
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
+import { FuzzInscribers } from "./FuzzInscribers.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
@@ -188,29 +197,51 @@ library MutationFilters {
 
         if (
             context.executionState.orders.length == 0 ||
-            context.executionState.orders[0].parameters.consideration.length == 0 ||
-            context.executionState.orders[0].parameters.consideration[0].itemType ==
+            context.executionState.orders[0].parameters.consideration.length ==
+            0 ||
+            context
+                .executionState
+                .orders[0]
+                .parameters
+                .consideration[0]
+                .itemType ==
             ItemType.NATIVE
         ) {
             return true;
         }
 
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
         return false;
+    }
+
+    function ineligibleForOrderIsCancelled(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
     }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
     using FuzzEngineLib for FuzzTestContext;
     using OrderEligibilityLib for FuzzTestContext;
+    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
 
     function mutation_invalidSignature(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters.ineligibleForInvalidSignature
-        );
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
@@ -221,9 +252,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidSigner_BadSignature(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidSigner);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
 
@@ -233,9 +262,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidSigner_ModifiedOrder(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidSigner);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.salt ^= 0x01;
 
@@ -243,9 +270,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badSignatureV(FuzzTestContext memory context) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForBadSignatureV);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.signature[64] = 0xff;
 
@@ -255,9 +280,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidTime_NotStarted(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidTime);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.startTime = block.timestamp + 1;
         order.parameters.endTime = block.timestamp + 2;
@@ -268,9 +291,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidTime_Expired(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidTime);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.startTime = block.timestamp - 1;
         order.parameters.endTime = block.timestamp;
@@ -281,9 +302,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_badFraction_NoFill(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForBadFraction);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.numerator = 0;
 
@@ -293,14 +312,25 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_badFraction_Overfill(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForBadFraction);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.numerator = 2;
         order.denominator = 1;
 
-        console.log(context.actionName());
+        exec(context);
+    }
+
+    function mutation_orderIsCancelled(
+        FuzzTestContext memory context
+    ) external {
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+
+        bytes32 orderHash = context.executionState.orderHashes[orderIndex];
+        FuzzInscribers.inscribeOrderStatusCancelled(
+            orderHash,
+            true,
+            context.seaport
+        );
 
         exec(context);
     }
@@ -308,7 +338,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_noContract(FuzzTestContext memory context) external {
         context.setIneligibleOrders(MutationFilters.ineligibleForNoContract);
 
-        (AdvancedOrder memory order, )  = context.selectEligibleOrder();
+        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             order.parameters.consideration[i].token = address(0x123456789);
